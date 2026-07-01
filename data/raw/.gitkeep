@@ -1,0 +1,2 @@
+# This directory stores raw downloaded datasets (e.g., CIFAR-10).
+# Files here are auto-downloaded by src/data_loader.py.

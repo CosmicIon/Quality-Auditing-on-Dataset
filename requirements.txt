@@ -1,0 +1,19 @@
+# Core ML
+torch
+torchvision
+
+# Data Auditing
+cleanlab
+
+# Data Science
+numpy
+pandas
+scikit-learn
+
+# Visualization
+matplotlib
+seaborn
+
+# Utilities
+tqdm
+Pillow
