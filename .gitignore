@@ -106,3 +106,9 @@ ENV/
 
 # Local files
 *.log
+
+# Data — ignore raw datasets and processed outputs, keep .gitkeep placeholders
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep

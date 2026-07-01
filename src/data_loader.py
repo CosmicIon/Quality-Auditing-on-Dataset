@@ -58,18 +58,59 @@ test_transform = transforms.Compose([
 # ---------------------------------------------------------------------------
 # Dataset & Loader helpers
 # ---------------------------------------------------------------------------
+
+# Mirrors to try (in order) if the default torchvision source is slow
+_CIFAR10_MIRRORS = [
+    "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",          # original
+    "https://huggingface.co/datasets/uoft-cs/cifar10/resolve/main/cifar-10-python.tar.gz",  # HuggingFace mirror
+]
+
+
+def _ensure_cifar10_downloaded(root: str):
+    """Download CIFAR-10 tar.gz manually if torchvision's default is too slow."""
+    import tarfile
+    import urllib.request
+
+    dest_dir = os.path.join(root, "cifar-10-batches-py")
+    if os.path.isdir(dest_dir):
+        return  # already extracted
+
+    tar_path = os.path.join(root, "cifar-10-python.tar.gz")
+    if not os.path.isfile(tar_path):
+        os.makedirs(root, exist_ok=True)
+        for url in _CIFAR10_MIRRORS:
+            try:
+                print(f"  Downloading CIFAR-10 from {url} ...")
+                urllib.request.urlretrieve(url, tar_path)
+                print("  Download complete.")
+                break
+            except Exception as e:
+                print(f"  Mirror failed ({e}), trying next...")
+        else:
+            raise RuntimeError("All CIFAR-10 download mirrors failed.")
+
+    # Extract
+    print("  Extracting CIFAR-10 ...")
+    with tarfile.open(tar_path, "r:gz") as tar:
+        tar.extractall(path=root)
+    print("  Extraction complete.")
+
+
 def get_datasets():
     """Download (if needed) and return CIFAR-10 train and test datasets."""
+    # Pre-download with mirror fallback so torchvision doesn't hang
+    _ensure_cifar10_downloaded(RAW_DATA_DIR)
+
     train_dataset = torchvision.datasets.CIFAR10(
         root=RAW_DATA_DIR,
         train=True,
-        download=True,
+        download=False,   # already downloaded above
         transform=train_transform,
     )
     test_dataset = torchvision.datasets.CIFAR10(
         root=RAW_DATA_DIR,
         train=False,
-        download=True,
+        download=False,
         transform=test_transform,
     )
     return train_dataset, test_dataset
@@ -78,20 +119,21 @@ def get_datasets():
 def get_dataloaders(batch_size: int = 64, num_workers: int = 2):
     """Return DataLoaders for the train and test splits."""
     train_dataset, test_dataset = get_datasets()
+    use_pin_memory = torch.cuda.is_available()
 
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=use_pin_memory,
     )
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=use_pin_memory,
     )
     return train_loader, test_loader
 
@@ -169,7 +211,7 @@ def main():
     grid_path = os.path.join(PROCESSED_DATA_DIR, "sample_grid.png")
     save_sample_grid(train_dataset, grid_path)
 
-    print("\n✅  Phase 1 complete — dataset is ready.\n")
+    print("\n[OK] Phase 1 complete -- dataset is ready.\n")
 
 
 if __name__ == "__main__":
