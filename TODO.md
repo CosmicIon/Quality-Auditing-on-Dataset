@@ -6,18 +6,18 @@
 - [x] Explore data structure and set up initial data loaders.
 
 ## Phase 2: Data Auditing (Task 1)
-- [ ] Implement `cleanlab` or custom embedding-based clustering.
-- [ ] Create a script to scan the dataset and flag issues:
-  - [ ] Incorrect labels.
-  - [ ] Confusing/ambiguous images.
-  - [ ] Outliers (e.g., non-animal/vehicle images in specific classes).
-  - [ ] Class imbalance.
-- [ ] Generate an automated auditing report based on the findings.
+- [x] Implement `cleanlab` or custom embedding-based clustering.
+- [x] Create a script to scan the dataset and flag issues:
+  - [x] Incorrect labels.
+  - [x] Confusing/ambiguous images.
+  - [x] Outliers (e.g., non-animal/vehicle images in specific classes).
+  - [x] Class imbalance.
+- [x] Generate an automated auditing report based on the findings.
 
 ## Phase 3: Controlled Synthesis (Task 2)
-- [ ] Select and set up a generative model (Conditional GANs or Diffusion Models).
-- [ ] Train the generative model using the cleaned subsets of the data.
-- [ ] Selectively generate synthetic samples for underrepresented/minority classes to balance the dataset.
+- [x] Select and set up a generative model (Conditional GANs or Diffusion Models).
+- [x] Train the generative model using the cleaned subsets of the data.
+- [x] Selectively generate synthetic samples for underrepresented/minority classes to balance the dataset.
 
 ## Phase 4: Quality Assessment (Task 3)
 - [ ] Implement Fréchet Inception Distance (FID) metrics for evaluation.

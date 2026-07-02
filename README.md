@@ -11,6 +11,8 @@ Quality-Auditing-on-Dataset/
 ├── data/
 │   ├── raw/                # Raw downloaded datasets (CIFAR-10)
 │   └── processed/          # Processed data, sample grids, tensors
+│       ├── audit/          # Phase 2 audit outputs
+│       └── synthesis/      # Phase 3 synthesis outputs
 ├── docs/                   # Project documentation
 │   ├── PIPELINE_TASKS.md
 │   └── PROJECT_OVERVIEW.md
@@ -18,13 +20,21 @@ Quality-Auditing-on-Dataset/
 ├── scripts/                # Utility / helper scripts
 ├── src/                    # Source code
 │   ├── __init__.py
-│   └── data_loader.py      # CIFAR-10 download & data loaders
+│   ├── data_loader.py      # Phase 1: CIFAR-10 download & data loaders
+│   ├── data_auditor.py     # Phase 2: Automated data quality auditing
+│   ├── data_cleaner.py     # Phase 3: Build cleaned training subset
+│   ├── synthesis/          # Phase 3: Generative model
+│   │   ├── model.py        #   Class-conditional U-Net
+│   │   └── diffusion.py    #   Gaussian diffusion process
+│   ├── train_generator.py  # Phase 3: Train the DDPM
+│   └── synthesize_data.py  # Phase 3: Generate synthetic images
 ├── tests/                  # Unit tests
 ├── .gitignore
 ├── README.md
 ├── TODO.md
 └── requirements.txt
 ```
+
 
 ## Setup
 
@@ -54,8 +64,16 @@ pip install -r requirements.txt
 
 ### Quick Start
 ```bash
-# Download CIFAR-10 and verify the data loaders
+# Phase 1 — Download CIFAR-10 and verify the data loaders
 python src/data_loader.py
+
+# Phase 2 — Run automated data quality auditing
+python src/data_auditor.py
+
+# Phase 3 — Train generative model and synthesize data
+python src/data_cleaner.py           # Preview cleaning stats
+python src/train_generator.py        # Train DDPM (~2-3 hrs on GPU)
+python src/synthesize_data.py        # Generate synthetic images
 ```
 
 ## Documentation
