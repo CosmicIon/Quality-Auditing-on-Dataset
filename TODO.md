@@ -20,10 +20,10 @@
 - [x] Selectively generate synthetic samples for underrepresented/minority classes to balance the dataset.
 
 ## Phase 4: Quality Assessment (Task 3)
-- [ ] Implement Fréchet Inception Distance (FID) metrics for evaluation.
-- [ ] Evaluate the generated images for realism and diversity.
-- [ ] Ensure synthetic samples are not exact duplicates (memorization check) of training data.
-- [ ] Ensure generated data distribution resembles the real data distribution.
+- [x] Implement Fréchet Inception Distance (FID) metrics for evaluation.
+- [x] Evaluate the generated images for realism and diversity.
+- [x] Ensure synthetic samples are not exact duplicates (memorization check) of training data.
+- [x] Ensure generated data distribution resembles the real data distribution.
 
 ## Phase 5: Downstream Validation (Task 4)
 - [ ] Define and train a baseline classifier on the **original** CIFAR-10 dataset.
