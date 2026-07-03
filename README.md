@@ -68,21 +68,24 @@ pip install -r requirements.txt
 
 ### Quick Start
 ```bash
-# Phase 1 — Download CIFAR-10 and verify the data loaders
+# Phase 1 -- Download CIFAR-10 and verify the data loaders
 python src/data_loader.py
 
-# Phase 2 — Run automated data quality auditing
+# (Optional) Inject 15% label noise for the academic validation experiment
+python src/noise_injector.py
+
+# Phase 2 -- Run automated data quality auditing
 python src/data_auditor.py
 
-# Phase 3 — Train generative model and synthesize data
+# Phase 3 -- Train generative model and synthesize data
 python src/data_cleaner.py           # Preview cleaning stats
 python src/train_generator.py        # Train DDPM (~2-3 hrs on GPU)
 python src/synthesize_data.py        # Generate synthetic images
 
-# Phase 4 — Assess quality of synthetic data
+# Phase 4 -- Assess quality of synthetic data
 python src/quality_assessor.py       # FID, diversity, memorization checks
 
-# Phase 5 — Downstream validation (train classifier on 3 dataset variants)
+# Phase 5 -- Downstream validation (train classifier on 3 dataset variants)
 python src/downstream_validation.py  # Compare Original vs Cleaned vs Augmented
 ```
 

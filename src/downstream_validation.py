@@ -160,11 +160,25 @@ def get_data_loaders(batch_size: int = 128, num_workers: int = 2) -> dict:
         root=RAW_DATA_DIR, train=True, download=False,
         transform=_get_train_transform(),
     )
+
+    # If noisy labels exist, use them for the "Original" baseline
+    # (this demonstrates the pipeline's value on a noisy dataset)
+    noisy_path = os.path.join(PROCESSED_DATA_DIR, "noise", "noisy_labels.json")
+    is_noisy = False
+    if os.path.isfile(noisy_path):
+        with open(noisy_path) as f:
+            noisy_data = json.load(f)
+        original_dataset.targets = noisy_data["noisy_labels"]
+        is_noisy = True
+        noise_pct = noisy_data["noise_rate"] * 100
+        print(f"  [NOISE] Original dataset using noisy labels ({noise_pct:.0f}% corrupted)")
+
     original_loader = DataLoader(
         original_dataset, batch_size=batch_size, shuffle=True,
         num_workers=num_workers, pin_memory=torch.cuda.is_available(),
     )
-    print(f"  Original:  {len(original_dataset):,} samples")
+    label_status = " (NOISY)" if is_noisy else ""
+    print(f"  Original:  {len(original_dataset):,} samples{label_status}")
 
     # --- Cleaned training set ---
     # get_clean_dataset returns a Subset with the data_loader's default

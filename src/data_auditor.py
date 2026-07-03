@@ -27,7 +27,9 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_predict, StratifiedKFold
 from sklearn.ensemble import IsolationForest
+# pyrefly: ignore [missing-import]
 from cleanlab.filter import find_label_issues
+# pyrefly: ignore [missing-import]
 from cleanlab.rank import get_label_quality_scores
 from tqdm import tqdm
 import matplotlib
@@ -123,6 +125,15 @@ def extract_features(device: torch.device, batch_size: int = 256) -> tuple:
 
     features = np.concatenate(all_features, axis=0)
     labels = np.concatenate(all_labels, axis=0)
+
+    # Check for injected noise — if present, override labels
+    noisy_path = os.path.join(PROCESSED_DATA_DIR, "noise", "noisy_labels.json")
+    if os.path.isfile(noisy_path):
+        with open(noisy_path) as f:
+            noisy_data = json.load(f)
+        labels = np.array(noisy_data["noisy_labels"], dtype=labels.dtype)
+        print(f"  [NOISE] Loaded noisy labels ({noisy_data['noise_rate']*100:.0f}% corrupted)")
+
     print(f"  Feature matrix shape: {features.shape}")
     return features, labels
 
