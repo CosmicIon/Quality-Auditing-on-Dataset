@@ -13,7 +13,8 @@ Quality-Auditing-on-Dataset/
 │   └── processed/          # Processed data, sample grids, tensors
 │       ├── audit/          # Phase 2 audit outputs
 │       ├── synthesis/      # Phase 3 synthesis outputs
-│       └── quality/        # Phase 4 quality assessment outputs
+│       ├── quality/        # Phase 4 quality assessment outputs
+│       └── validation/     # Phase 5 downstream validation outputs
 ├── docs/                   # Project documentation
 │   ├── PIPELINE_TASKS.md
 │   └── PROJECT_OVERVIEW.md
@@ -29,7 +30,8 @@ Quality-Auditing-on-Dataset/
 │   │   └── diffusion.py    #   Gaussian diffusion process
 │   ├── train_generator.py  # Phase 3: Train the DDPM
 │   ├── synthesize_data.py  # Phase 3: Generate synthetic images
-│   └── quality_assessor.py # Phase 4: Quality assessment of synthetic data
+│   ├── quality_assessor.py # Phase 4: Quality assessment of synthetic data
+│   └── downstream_validation.py  # Phase 5: Downstream validation
 ├── tests/                  # Unit tests
 ├── .gitignore
 ├── README.md
@@ -79,6 +81,9 @@ python src/synthesize_data.py        # Generate synthetic images
 
 # Phase 4 — Assess quality of synthetic data
 python src/quality_assessor.py       # FID, diversity, memorization checks
+
+# Phase 5 — Downstream validation (train classifier on 3 dataset variants)
+python src/downstream_validation.py  # Compare Original vs Cleaned vs Augmented
 ```
 
 ## Documentation

@@ -26,8 +26,8 @@
 - [x] Ensure generated data distribution resembles the real data distribution.
 
 ## Phase 5: Downstream Validation (Task 4)
-- [ ] Define and train a baseline classifier on the **original** CIFAR-10 dataset.
-- [ ] Train the same classifier architecture on the **cleaned** dataset (post-auditing).
-- [ ] Train the same classifier architecture on the **cleaned and augmented** dataset (post-synthesis).
-- [ ] Compare validation/test accuracies across all three experiments.
-- [ ] Generate final report proving the effectiveness of the data-centric interventions.
+- [x] Define and train a baseline classifier on the **original** CIFAR-10 dataset.
+- [x] Train the same classifier architecture on the **cleaned** dataset (post-auditing).
+- [x] Train the same classifier architecture on the **cleaned and augmented** dataset (post-synthesis).
+- [x] Compare validation/test accuracies across all three experiments.
+- [x] Generate final report proving the effectiveness of the data-centric interventions.
