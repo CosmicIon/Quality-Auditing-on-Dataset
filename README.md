@@ -12,7 +12,8 @@ Quality-Auditing-on-Dataset/
 │   ├── raw/                # Raw downloaded datasets (CIFAR-10)
 │   └── processed/          # Processed data, sample grids, tensors
 │       ├── audit/          # Phase 2 audit outputs
-│       └── synthesis/      # Phase 3 synthesis outputs
+│       ├── synthesis/      # Phase 3 synthesis outputs
+│       └── quality/        # Phase 4 quality assessment outputs
 ├── docs/                   # Project documentation
 │   ├── PIPELINE_TASKS.md
 │   └── PROJECT_OVERVIEW.md
@@ -27,7 +28,8 @@ Quality-Auditing-on-Dataset/
 │   │   ├── model.py        #   Class-conditional U-Net
 │   │   └── diffusion.py    #   Gaussian diffusion process
 │   ├── train_generator.py  # Phase 3: Train the DDPM
-│   └── synthesize_data.py  # Phase 3: Generate synthetic images
+│   ├── synthesize_data.py  # Phase 3: Generate synthetic images
+│   └── quality_assessor.py # Phase 4: Quality assessment of synthetic data
 ├── tests/                  # Unit tests
 ├── .gitignore
 ├── README.md
@@ -74,6 +76,9 @@ python src/data_auditor.py
 python src/data_cleaner.py           # Preview cleaning stats
 python src/train_generator.py        # Train DDPM (~2-3 hrs on GPU)
 python src/synthesize_data.py        # Generate synthetic images
+
+# Phase 4 — Assess quality of synthetic data
+python src/quality_assessor.py       # FID, diversity, memorization checks
 ```
 
 ## Documentation
