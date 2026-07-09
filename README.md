@@ -68,9 +68,8 @@ python -m venv .venv
 source .venv/bin/activate
 
 # 4. Install PyTorch with CUDA support (Highly Recommended)
-# If you have an NVIDIA GPU, you should install the CUDA version of PyTorch first 
-# to drastically speed up feature extraction and model training.
-pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# On Windows with Python 3.13, use the CUDA 12.4 wheels so PyTorch can detect your RTX GPU.
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 
 # 5. Install remaining dependencies
 pip install -r requirements.txt

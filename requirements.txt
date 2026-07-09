@@ -1,6 +1,8 @@
 # Core ML
-torch
-torchvision
+# Install the CUDA 12.4 wheels first so the project can use the GPU on Windows + Python 3.13.
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+torchvision==0.21.0+cu124
 
 # Data Auditing
 cleanlab
