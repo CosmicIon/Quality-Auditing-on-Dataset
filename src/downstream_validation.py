@@ -155,40 +155,22 @@ def get_data_loaders(batch_size: int = 128, num_workers: int = 2) -> dict:
         num_workers=num_workers, pin_memory=torch.cuda.is_available(),
     )
 
+    from src.data_loader import get_datasets
+
     # --- Original training set ---
-    original_dataset = torchvision.datasets.CIFAR10(
-        root=RAW_DATA_DIR, train=True, download=False,
-        transform=_get_train_transform(),
-    )
-
-    # If noisy dataset exists, use noisy labels for the "Original" baseline
-    noisy_pt_path = os.path.join(PROCESSED_DATA_DIR, "noisy_cifar10.pt")
-    is_noisy = False
-    if os.path.isfile(noisy_pt_path):
-        noisy_data = torch.load(noisy_pt_path, weights_only=False)
-        original_dataset.targets = noisy_data["targets"].tolist()
-        is_noisy = True
-        noise_pct = noisy_data["noise_rate"] * 100
-        print(f"  [NOISE] Original dataset using noisy labels from noisy_cifar10.pt ({noise_pct:.0f}% corrupted)")
-
+    # get_datasets() automatically loads noisy_cifar10.pt if it exists.
+    original_dataset, _ = get_datasets()
+    original_dataset.transform = _get_train_transform()
+    
     original_loader = DataLoader(
         original_dataset, batch_size=batch_size, shuffle=True,
         num_workers=num_workers, pin_memory=torch.cuda.is_available(),
     )
-    label_status = " (NOISY)" if is_noisy else ""
-    print(f"  Original:  {len(original_dataset):,} samples{label_status}")
+    print(f"  Original:  {len(original_dataset):,} samples")
 
     # --- Cleaned training set ---
-    # get_clean_dataset returns a Subset with the data_loader's default
-    # train_transform (ToTensor + Normalize), so we need to replace it
-    # with our augmented transform.
-    cleaned_base = torchvision.datasets.CIFAR10(
-        root=RAW_DATA_DIR, train=True, download=False,
-        transform=_get_train_transform(),
-    )
-    # Apply noisy labels to the cleaned base too (so flagged indices align)
-    if is_noisy:
-        cleaned_base.targets = noisy_data["targets"].tolist()
+    cleaned_base, _ = get_datasets()
+    cleaned_base.transform = _get_train_transform()
 
     from src.data_cleaner import get_clean_indices
     clean_idx = get_clean_indices(len(cleaned_base))

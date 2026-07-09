@@ -120,13 +120,14 @@ def get_datasets():
         transform=test_transform,
     )
 
-    # Check for noisy dataset — if present, override training labels
+    # Check for noisy dataset — if present, override training labels and images
     noisy_pt_path = os.path.join(PROCESSED_DATA_DIR, "noisy_cifar10.pt")
     if os.path.isfile(noisy_pt_path):
         noisy_data = torch.load(noisy_pt_path, weights_only=False)
         train_dataset.targets = noisy_data["targets"].tolist()
+        train_dataset.data = noisy_data["data"]
         noise_pct = noisy_data["noise_rate"] * 100
-        print(f"  [NOISE] Loaded noisy labels from noisy_cifar10.pt ({noise_pct:.0f}% corrupted)")
+        print(f"  [NOISE] Loaded noisy dataset from noisy_cifar10.pt ({noise_pct:.0f}% corrupted)")
 
     return train_dataset, test_dataset
 

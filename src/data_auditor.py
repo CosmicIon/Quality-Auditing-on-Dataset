@@ -100,16 +100,12 @@ def extract_features(device: torch.device, batch_size: int = 256) -> tuple:
     """
     print("\n[Stage 1] Extracting ResNet-18 features ...")
 
-    # Load raw CIFAR-10 with ImageNet-compatible transform
-    from src.data_loader import RAW_DATA_DIR, _ensure_cifar10_downloaded
-    _ensure_cifar10_downloaded(RAW_DATA_DIR)
-
-    dataset = torchvision.datasets.CIFAR10(
-        root=RAW_DATA_DIR,
-        train=True,
-        download=False,
-        transform=_get_imagenet_transform(),
-    )
+    # Load dataset using get_datasets to automatically pick up the noisy labels (if injected)
+    from src.data_loader import get_datasets
+    dataset, _ = get_datasets()
+    
+    # Override the default transform with the ImageNet-compatible one required by ResNet-18
+    dataset.transform = _get_imagenet_transform()
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
