@@ -14,14 +14,7 @@ This script:
 import os
 import sys
 
-import torch
-import torchvision
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")          # non-interactive backend — safe for scripts
-import matplotlib.pyplot as plt
 
 
 # ---------------------------------------------------------------------------
@@ -44,15 +37,14 @@ CIFAR10_CLASSES = (
 CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
 CIFAR10_STD  = (0.2470, 0.2435, 0.2616)
 
-train_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
-])
 
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
-])
+def _build_transform():
+    import torchvision.transforms as transforms
+
+    return transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
+    ])
 
 
 # ---------------------------------------------------------------------------
@@ -107,17 +99,22 @@ def get_datasets():
     # Pre-download with mirror fallback so torchvision doesn't hang
     _ensure_cifar10_downloaded(RAW_DATA_DIR)
 
+    import torch
+    import torchvision
+
+    transform = _build_transform()
+
     train_dataset = torchvision.datasets.CIFAR10(
         root=RAW_DATA_DIR,
         train=True,
         download=False,   # already downloaded above
-        transform=train_transform,
+        transform=transform,
     )
     test_dataset = torchvision.datasets.CIFAR10(
         root=RAW_DATA_DIR,
         train=False,
         download=False,
-        transform=test_transform,
+        transform=transform,
     )
 
     # Check for noisy dataset — if present, override training labels and images
@@ -134,6 +131,10 @@ def get_datasets():
 
 def get_dataloaders(batch_size: int = 64, num_workers: int = 2):
     """Return DataLoaders for the train and test splits."""
+    import torch
+    import torchvision
+    from torch.utils.data import DataLoader
+
     train_dataset, test_dataset = get_datasets()
     use_pin_memory = torch.cuda.is_available()
 
@@ -183,6 +184,10 @@ def print_dataset_stats(train_dataset, test_dataset):
 
 def save_sample_grid(dataset, save_path: str, n: int = 25):
     """Save a grid of n sample images (un-normalised) to save_path."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     fig, axes = plt.subplots(5, 5, figsize=(8, 8))
     fig.suptitle("CIFAR-10 Sample Images", fontsize=14)
 

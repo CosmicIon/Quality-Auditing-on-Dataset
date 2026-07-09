@@ -19,29 +19,7 @@ import json
 import time
 
 import numpy as np
-import torch
-import torch.nn as nn
-import torchvision
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, TensorDataset
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_predict, StratifiedKFold
-from sklearn.ensemble import IsolationForest
-from sklearn.cluster import KMeans
-from sklearn.metrics.pairwise import cosine_similarity
-import scipy.linalg
-from scipy.spatial.distance import mahalanobis
-# pyrefly: ignore [missing-import]
-import cv2
-# pyrefly: ignore [missing-import]
-from cleanlab.filter import find_label_issues
-# pyrefly: ignore [missing-import]
-from cleanlab.rank import get_label_quality_scores
 from tqdm import tqdm
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 # ---------------------------------------------------------------------------
 # Import project modules
@@ -70,8 +48,12 @@ IMAGENET_STD  = (0.229, 0.224, 0.225)
 # ═══════════════════════════════════════════════════════════════════════════
 # Stage 1 — Feature Extraction
 # ═══════════════════════════════════════════════════════════════════════════
-def _build_feature_extractor(device: torch.device) -> nn.Module:
+def _build_feature_extractor(device):
     """Return a frozen ResNet-18 that outputs 512-d feature vectors."""
+    import torch
+    import torch.nn as nn
+    import torchvision
+
     weights = torchvision.models.ResNet18_Weights.IMAGENET1K_V1
     resnet = torchvision.models.resnet18(weights=weights)
     # Remove the final classification head → output is 512-d
@@ -83,6 +65,8 @@ def _build_feature_extractor(device: torch.device) -> nn.Module:
 
 def _get_imagenet_transform():
     """Transform for CIFAR-10 images to match ImageNet ResNet input."""
+    import torchvision.transforms as transforms
+
     return transforms.Compose([
         transforms.Resize(224),
         transforms.ToTensor(),
@@ -90,7 +74,7 @@ def _get_imagenet_transform():
     ])
 
 
-def extract_features(device: torch.device, batch_size: int = 256) -> tuple:
+def extract_features(device, batch_size: int = 256) -> tuple:
     """
     Extract 512-d ResNet-18 features for all CIFAR-10 training images.
 
@@ -102,6 +86,9 @@ def extract_features(device: torch.device, batch_size: int = 256) -> tuple:
 
     # Load dataset using get_datasets to automatically pick up the noisy labels (if injected)
     from src.data_loader import get_datasets
+    import torch
+    from torch.utils.data import DataLoader
+
     dataset, _ = get_datasets()
     
     # Override the default transform with the ImageNet-compatible one required by ResNet-18
@@ -110,7 +97,7 @@ def extract_features(device: torch.device, batch_size: int = 256) -> tuple:
         dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
+        num_workers=0,
         pin_memory=torch.cuda.is_available(),
     )
 
@@ -141,11 +128,14 @@ def compute_pred_probs(features: np.ndarray, labels: np.ndarray) -> np.ndarray:
     return out-of-fold predicted probabilities via 3-fold stratified CV.
     """
     print("\n[Stage 2] Computing cross-validated predicted probabilities ...")
-    clf = LogisticRegression(max_iter=1000, solver="lbfgs", n_jobs=-1)
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_predict, StratifiedKFold
+
+    clf = LogisticRegression(max_iter=1000, solver="lbfgs")
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
 
     pred_probs = cross_val_predict(
-        clf, features, labels, cv=cv, method="predict_proba", n_jobs=-1
+        clf, features, labels, cv=cv, method="predict_proba", n_jobs=1
     )
     print(f"  pred_probs shape: {pred_probs.shape}")
     return pred_probs
@@ -164,6 +154,9 @@ def detect_label_issues(labels: np.ndarray, pred_probs: np.ndarray) -> dict:
         suggested_labels – the most likely correct label per flagged sample
     """
     print("\n[Stage 3] Detecting label issues with Cleanlab ...")
+
+    from cleanlab.filter import find_label_issues
+    from cleanlab.rank import get_label_quality_scores
 
     issue_mask = find_label_issues(labels, pred_probs, return_indices_ranked_by="self_confidence")
     quality_scores = get_label_quality_scores(labels, pred_probs)
@@ -216,6 +209,8 @@ def detect_blurry_images(dataset_data: np.ndarray, threshold_percentile: int = 5
     dataset_data: np.ndarray of shape (N, H, W, 3) in uint8 format (CIFAR-10 data)
     """
     print(f"\n[Stage 5] Detecting blurry images (Laplacian variance percentile <= {threshold_percentile}) ...")
+
+    import cv2
     
     laplacian_vars = np.zeros(len(dataset_data))
     for i, img_rgb in enumerate(dataset_data):
@@ -243,6 +238,7 @@ def detect_outliers_mahalanobis(features: np.ndarray, labels: np.ndarray, thresh
     Per-class Mahalanobis distance to find images that are outliers within their own class.
     """
     print(f"\n[Stage 6] Detecting per-class outliers (Mahalanobis distance percentile >= {threshold_percentile}) ...")
+    import scipy.linalg
     
     mahalanobis_dists = np.zeros(len(features))
     unique_labels = np.unique(labels)
@@ -300,6 +296,7 @@ def detect_duplicates(features: np.ndarray, labels: np.ndarray, similarity_thres
     Computed within each class to save time.
     """
     print(f"\n[Stage 7] Detecting duplicate/near-duplicate pairs (cosine similarity >= {similarity_threshold}) ...")
+    from sklearn.metrics.pairwise import cosine_similarity
     
     duplicate_pairs = []
     unique_labels = np.unique(labels)
@@ -347,6 +344,7 @@ def analyse_weak_clusters(features: np.ndarray, labels: np.ndarray, n_clusters: 
     K-Means clustering within each class to find minority sub-groups.
     """
     print(f"\n[Stage 8] Analysing weak clusters (K={n_clusters} per class) ...")
+    from sklearn.cluster import KMeans
     
     cluster_results = {}
     unique_labels = np.unique(labels)
@@ -406,8 +404,10 @@ def analyse_class_imbalance(labels: np.ndarray) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 # Stage 6 — Report Generation & Visualisations
 # ═══════════════════════════════════════════════════════════════════════════
-def _unnormalize_cifar(img_tensor: torch.Tensor) -> np.ndarray:
+def _unnormalize_cifar(img_tensor) -> np.ndarray:
     """Undo CIFAR-10 normalisation and return HWC uint8 numpy array."""
+    import torch
+
     img = img_tensor.clone()
     for ch in range(3):
         img[ch] = img[ch] * CIFAR10_STD[ch] + CIFAR10_MEAN[ch]
@@ -419,6 +419,10 @@ def _save_flagged_grid(
     dataset, indices, labels, suggested, title, save_path, n=25, scores=None
 ):
     """Save a grid of flagged sample images."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     n = min(n, len(indices))
     cols = 5
     rows = (n + cols - 1) // cols
@@ -459,6 +463,11 @@ def _save_flagged_grid(
 
 def _save_class_distribution_chart(distribution: dict, save_path: str):
     """Bar chart of class distribution."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
     fig, ax = plt.subplots(figsize=(10, 5))
     classes = list(distribution.keys())
     counts = list(distribution.values())
@@ -478,6 +487,10 @@ def _save_class_distribution_chart(distribution: dict, save_path: str):
 
 def _save_quality_score_histogram(scores: np.ndarray, save_path: str):
     """Histogram of per-sample label quality scores."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.hist(scores, bins=100, color="steelblue", edgecolor="black", linewidth=0.3)
     ax.set_title("Label Quality Score Distribution", fontsize=13)
@@ -495,6 +508,10 @@ def _save_quality_score_histogram(scores: np.ndarray, save_path: str):
 
 def _save_duplicate_pairs_grid(dataset, duplicate_pairs, labels, save_path, n=10):
     """Save a grid showing pairs of duplicate images side-by-side."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     n = min(n, len(duplicate_pairs))
     if n == 0:
         return
@@ -706,6 +723,8 @@ def generate_report(
 # Main
 # ═══════════════════════════════════════════════════════════════════════════
 def main():
+    import torch
+
     start = time.time()
     print("=" * 65)
     print(" Phase 2: Enhanced Automated Data Quality Auditing")
