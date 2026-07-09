@@ -168,11 +168,7 @@ def main():
     inject_noise(noise_rate=args.noise_rate, seed=args.seed)
 
     print(f"\n{'=' * 65}")
-    print(f"  Noise injection complete. Re-run the pipeline:")
-    print(f"    python src/data_auditor.py")
-    print(f"    python src/synthesize_data.py")
-    print(f"    python src/quality_assessor.py")
-    print(f"    python src/downstream_validation.py --epochs 15")
+    print(f"  Noise injection complete.")
     print(f"{'=' * 65}\n")
 
 
