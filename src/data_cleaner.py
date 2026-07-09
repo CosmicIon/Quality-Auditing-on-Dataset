@@ -61,10 +61,13 @@ def get_clean_indices(total_samples: int = 50_000) -> np.ndarray:
     """
     Return sorted array of indices to KEEP (i.e. not flagged).
 
-    The flagged set is the union of mislabeled and outlier indices.
+    The flagged set is the union of mislabeled, ambiguous, blurry, outlier, and duplicate indices.
     """
     flagged = load_flagged_indices()
-    bad_set = set(flagged["mislabeled_indices"]) | set(flagged["outlier_indices"])
+    bad_set = set()
+    for key in ["mislabeled_indices", "ambiguous_indices", "blurry_indices", "outlier_indices", "duplicate_indices"]:
+        if key in flagged:
+            bad_set |= set(flagged[key])
     clean = sorted(set(range(total_samples)) - bad_set)
     return np.array(clean, dtype=np.int64)
 
@@ -118,15 +121,27 @@ def get_clean_indices_per_class(target_per_class: int = 5000) -> dict:
 def print_cleaning_summary():
     """Print a formatted summary of the data cleaning results."""
     flagged = load_flagged_indices()
-    bad_set = set(flagged["mislabeled_indices"]) | set(flagged["outlier_indices"])
-    overlap = set(flagged["mislabeled_indices"]) & set(flagged["outlier_indices"])
+    
+    # Extract sets
+    m_set = set(flagged.get("mislabeled_indices", []))
+    a_set = set(flagged.get("ambiguous_indices", []))
+    b_set = set(flagged.get("blurry_indices", []))
+    o_set = set(flagged.get("outlier_indices", []))
+    d_set = set(flagged.get("duplicate_indices", []))
+    
+    bad_set = m_set | a_set | b_set | o_set | d_set
+    total_flags = len(m_set) + len(a_set) + len(b_set) + len(o_set) + len(d_set)
+    overlap = total_flags - len(bad_set)
 
     print("=" * 65)
     print(" Data Cleaning Summary")
     print("=" * 65)
-    print(f"  Mislabeled samples flagged : {flagged['total_mislabeled']:,}")
-    print(f"  Outlier samples flagged    : {flagged['total_outliers']:,}")
-    print(f"  Overlap (both flags)       : {len(overlap):,}")
+    print(f"  Mislabeled samples flagged : {len(m_set):,}")
+    print(f"  Ambiguous samples flagged  : {len(a_set):,}")
+    print(f"  Blurry samples flagged     : {len(b_set):,}")
+    print(f"  Outlier samples flagged    : {len(o_set):,}")
+    print(f"  Duplicate samples flagged  : {len(d_set):,}")
+    print(f"  Overlap (multiple flags)   : {overlap:,}")
     print(f"  Unique samples removed     : {len(bad_set):,}")
     print(f"  Remaining clean samples    : {50_000 - len(bad_set):,}")
     print()

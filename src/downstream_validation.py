@@ -161,17 +161,15 @@ def get_data_loaders(batch_size: int = 128, num_workers: int = 2) -> dict:
         transform=_get_train_transform(),
     )
 
-    # If noisy labels exist, use them for the "Original" baseline
-    # (this demonstrates the pipeline's value on a noisy dataset)
-    noisy_path = os.path.join(PROCESSED_DATA_DIR, "noise", "noisy_labels.json")
+    # If noisy dataset exists, use noisy labels for the "Original" baseline
+    noisy_pt_path = os.path.join(PROCESSED_DATA_DIR, "noisy_cifar10.pt")
     is_noisy = False
-    if os.path.isfile(noisy_path):
-        with open(noisy_path) as f:
-            noisy_data = json.load(f)
-        original_dataset.targets = noisy_data["noisy_labels"]
+    if os.path.isfile(noisy_pt_path):
+        noisy_data = torch.load(noisy_pt_path, weights_only=False)
+        original_dataset.targets = noisy_data["targets"].tolist()
         is_noisy = True
         noise_pct = noisy_data["noise_rate"] * 100
-        print(f"  [NOISE] Original dataset using noisy labels ({noise_pct:.0f}% corrupted)")
+        print(f"  [NOISE] Original dataset using noisy labels from noisy_cifar10.pt ({noise_pct:.0f}% corrupted)")
 
     original_loader = DataLoader(
         original_dataset, batch_size=batch_size, shuffle=True,
@@ -188,6 +186,10 @@ def get_data_loaders(batch_size: int = 128, num_workers: int = 2) -> dict:
         root=RAW_DATA_DIR, train=True, download=False,
         transform=_get_train_transform(),
     )
+    # Apply noisy labels to the cleaned base too (so flagged indices align)
+    if is_noisy:
+        cleaned_base.targets = noisy_data["targets"].tolist()
+
     from src.data_cleaner import get_clean_indices
     clean_idx = get_clean_indices(len(cleaned_base))
     cleaned_dataset = torch.utils.data.Subset(cleaned_base, clean_idx.tolist())

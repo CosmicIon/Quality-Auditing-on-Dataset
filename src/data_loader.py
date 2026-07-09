@@ -97,7 +97,13 @@ def _ensure_cifar10_downloaded(root: str):
 
 
 def get_datasets():
-    """Download (if needed) and return CIFAR-10 train and test datasets."""
+    """
+    Download (if needed) and return CIFAR-10 train and test datasets.
+
+    If a noisy dataset file exists at data/processed/noisy_cifar10.pt
+    (created by noise_injector.py), the training labels are automatically
+    replaced with the corrupted labels. The images and test set remain the same.
+    """
     # Pre-download with mirror fallback so torchvision doesn't hang
     _ensure_cifar10_downloaded(RAW_DATA_DIR)
 
@@ -113,6 +119,15 @@ def get_datasets():
         download=False,
         transform=test_transform,
     )
+
+    # Check for noisy dataset — if present, override training labels
+    noisy_pt_path = os.path.join(PROCESSED_DATA_DIR, "noisy_cifar10.pt")
+    if os.path.isfile(noisy_pt_path):
+        noisy_data = torch.load(noisy_pt_path, weights_only=False)
+        train_dataset.targets = noisy_data["targets"].tolist()
+        noise_pct = noisy_data["noise_rate"] * 100
+        print(f"  [NOISE] Loaded noisy labels from noisy_cifar10.pt ({noise_pct:.0f}% corrupted)")
+
     return train_dataset, test_dataset
 
 

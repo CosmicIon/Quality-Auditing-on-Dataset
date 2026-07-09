@@ -6,14 +6,17 @@ Usage:
     python src/noise_injector.py --noise-rate 0.15 --seed 42
 
 This script:
-    1. Loads the original CIFAR-10 training labels (50,000 samples)
+    1. Loads the original CIFAR-10 training set (50,000 images + labels)
     2. Randomly selects a fraction of samples and flips their labels
        to a DIFFERENT random class
-    3. Saves the noisy label mapping to data/processed/noise/noisy_labels.json
-    4. Prints a summary of the corruption
+    3. Saves the complete noisy dataset to data/processed/noisy_cifar10.pt
+       (contains both images and corrupted labels as PyTorch tensors)
+    4. Saves noise metadata to data/processed/noise/noisy_labels.json
+    5. Prints a summary of the corruption
 
-The noisy_labels.json file is automatically detected by data_auditor.py
-and downstream_validation.py to enable the noise-injection experiment.
+After running this script, every downstream script (data_auditor.py,
+downstream_validation.py, etc.) will automatically use the noisy dataset
+via data_loader.get_datasets().
 """
 
 import os
@@ -23,6 +26,7 @@ import argparse
 from collections import Counter
 
 import numpy as np
+import torch
 import torchvision
 
 # ---------------------------------------------------------------------------
@@ -42,11 +46,13 @@ from src.data_loader import (
 # Paths
 # ---------------------------------------------------------------------------
 NOISE_DIR = os.path.join(PROCESSED_DATA_DIR, "noise")
+NOISY_PT_PATH = os.path.join(PROCESSED_DATA_DIR, "noisy_cifar10.pt")
 
 
 def inject_noise(noise_rate: float = 0.15, seed: int = 42) -> dict:
     """
-    Corrupt a fraction of CIFAR-10 training labels.
+    Corrupt a fraction of CIFAR-10 training labels and save the full
+    noisy dataset (images + corrupted labels) as a PyTorch .pt file.
 
     Each corrupted sample's label is flipped to a uniformly random
     DIFFERENT class (never the original class).
@@ -56,13 +62,13 @@ def inject_noise(noise_rate: float = 0.15, seed: int = 42) -> dict:
         seed: Random seed for reproducibility
 
     Returns:
-        dict with noisy_labels, corrupted_indices, original_labels, noise_rate
+        dict with metadata about the corruption
     """
     print("=" * 65)
     print(" Noise Injection: Corrupting CIFAR-10 Labels")
     print("=" * 65)
 
-    # Load original CIFAR-10
+    # Load original CIFAR-10 (raw, no transform)
     _ensure_cifar10_downloaded(RAW_DATA_DIR)
     dataset = torchvision.datasets.CIFAR10(
         root=RAW_DATA_DIR, train=True, download=False,
@@ -109,6 +115,31 @@ def inject_noise(noise_rate: float = 0.15, seed: int = 42) -> dict:
     assert n_actually_changed == n_corrupt, "Some labels were not changed!"
     print(f"\n  Verified: all {n_corrupt:,} labels were changed to a different class.")
 
+    # -----------------------------------------------------------------------
+    # Save the COMPLETE noisy dataset as a PyTorch .pt file
+    # -----------------------------------------------------------------------
+    # dataset.data is a numpy array of shape (50000, 32, 32, 3), uint8
+    images_data = dataset.data  # numpy array (N, H, W, C)
+    noisy_labels_tensor = torch.tensor(noisy_labels, dtype=torch.long)
+
+    noisy_dataset = {
+        "data": images_data,                     # np.ndarray (50000, 32, 32, 3)
+        "targets": noisy_labels_tensor,           # torch.Tensor (50000,)
+        "noise_rate": noise_rate,
+        "seed": seed,
+        "n_corrupted": n_corrupt,
+        "corrupted_indices": corrupted_indices,
+    }
+
+    os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
+    torch.save(noisy_dataset, NOISY_PT_PATH)
+    pt_size = os.path.getsize(NOISY_PT_PATH) / (1024 * 1024)
+    print(f"\n  Saved noisy dataset: {NOISY_PT_PATH}")
+    print(f"  File size: {pt_size:.1f} MB")
+
+    # -----------------------------------------------------------------------
+    # Also save the JSON metadata (for compatibility and auditing)
+    # -----------------------------------------------------------------------
     result = {
         "noisy_labels": noisy_labels.tolist(),
         "corrupted_indices": corrupted_indices,
@@ -119,6 +150,12 @@ def inject_noise(noise_rate: float = 0.15, seed: int = 42) -> dict:
         "n_total": n_samples,
     }
 
+    os.makedirs(NOISE_DIR, exist_ok=True)
+    json_path = os.path.join(NOISE_DIR, "noisy_labels.json")
+    with open(json_path, "w") as f:
+        json.dump(result, f)
+    print(f"  Saved metadata: {json_path}")
+
     return result
 
 
@@ -128,15 +165,8 @@ def main():
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     args = parser.parse_args()
 
-    result = inject_noise(noise_rate=args.noise_rate, seed=args.seed)
+    inject_noise(noise_rate=args.noise_rate, seed=args.seed)
 
-    # Save
-    os.makedirs(NOISE_DIR, exist_ok=True)
-    save_path = os.path.join(NOISE_DIR, "noisy_labels.json")
-    with open(save_path, "w") as f:
-        json.dump(result, f)
-    print(f"\n  Saved: {save_path}")
-    print(f"  File size: {os.path.getsize(save_path) / 1024:.0f} KB")
     print(f"\n{'=' * 65}")
     print(f"  Noise injection complete. Re-run the pipeline:")
     print(f"    python src/data_auditor.py")
