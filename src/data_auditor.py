@@ -155,7 +155,9 @@ def detect_label_issues(labels: np.ndarray, pred_probs: np.ndarray) -> dict:
     """
     print("\n[Stage 3] Detecting label issues with Cleanlab ...")
 
+    # pyrefly: ignore [missing-import]
     from cleanlab.filter import find_label_issues
+    # pyrefly: ignore [missing-import]
     from cleanlab.rank import get_label_quality_scores
 
     issue_mask = find_label_issues(labels, pred_probs, return_indices_ranked_by="self_confidence")
@@ -210,6 +212,7 @@ def detect_blurry_images(dataset_data: np.ndarray, threshold_percentile: int = 5
     """
     print(f"\n[Stage 5] Detecting blurry images (Laplacian variance percentile <= {threshold_percentile}) ...")
 
+    # pyrefly: ignore [missing-import]
     import cv2
     
     laplacian_vars = np.zeros(len(dataset_data))
