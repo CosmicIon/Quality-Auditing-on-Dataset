@@ -31,6 +31,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 import scipy.linalg
 from scipy.spatial.distance import mahalanobis
+# pyrefly: ignore [missing-import]
 import cv2
 # pyrefly: ignore [missing-import]
 from cleanlab.filter import find_label_issues
