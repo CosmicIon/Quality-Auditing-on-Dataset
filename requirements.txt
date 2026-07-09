@@ -20,3 +20,4 @@ seaborn
 tqdm
 Pillow
 opencv-python
+reportlab
